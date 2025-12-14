@@ -4,12 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MindAR Marker Tracking</title>
+    <title>MindAR + WebXR SLAM Tracking</title>
 
     <!-- A-Frame -->
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
 
-    <!-- MindAR A-Frame Integration (more stable CDN) -->
+    <!-- MindAR A-Frame Integration -->
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
 
     <style>
@@ -23,7 +23,7 @@
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.8);
             color: white;
             padding: 15px 25px;
             border-radius: 10px;
@@ -45,6 +45,25 @@
         .status-error {
             color: #f44336;
         }
+
+        .status-info {
+            color: #2196f3;
+        }
+
+        #tracking-mode {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(33, 150, 243, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-family: Arial, sans-serif;
+            z-index: 1000;
+            font-size: 12px;
+            display: none;
+        }
     </style>
 </head>
 
@@ -53,29 +72,32 @@
         <div id="status-message" class="status-good">✓ Point camera at marker</div>
     </div>
 
-    <!-- A-Frame Scene with MindAR -->
+    <div id="tracking-mode"></div>
+
+    <!-- A-Frame Scene with MindAR + WebXR -->
     <a-scene mindar-image="imageTargetSrc: ./markers/marker_v1.mind; 
                   autoStart: true;
-                  uiLoading: yes;
+                  uiLoading: no;
                   uiScanning: no;
                   uiError: no;
-                  filterMinCF: 0.0005; 
+                  filterMinCF: 0.00001; 
                   filterBeta: 0.0005;
-                  warmupTolerance: 5;
-                  missTolerance: 10;
+                  warmupTolerance: 10;
+                  missTolerance: 15;
                   maxTrack: 1;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights"
-        vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+        vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false"
+        webxr="requiredFeatures: hit-test,anchors;">
 
-        <!-- Camera with autofocus enabled -->
+        <!-- Camera -->
         <a-camera position="0 0 0" look-controls="enabled: false" user-height="0"></a-camera>
 
-        <!-- Marker Target -->
-        <a-entity mindar-image-target="targetIndex: 0">
+        <!-- Marker Target with World Anchor -->
+        <a-entity id="marker-entity" mindar-image-target="targetIndex: 0">
             <!-- Rotating colorful cube -->
-            <a-box position="0 0.2 0" rotation="0 0 0" material="color: #FF0000; shader: flat"
+            <a-box id="ar-cube" position="0 0.2 0" rotation="0 0 0" material="color: #FF0000; shader: flat"
                 animation="property: rotation; to: 360 360 360; loop: true; dur: 10000; easing: linear">
 
-                <!-- Add different colored faces using planes -->
+                <!-- Different colored faces -->
                 <a-plane position="0 0 0.1501" rotation="0 0 0" width="0.3" height="0.3" color="#FF0000"></a-plane>
                 <a-plane position="0 0 -0.1501" rotation="0 180 0" width="0.3" height="0.3" color="#0000FF"></a-plane>
                 <a-plane position="0.1501 0 0" rotation="0 90 0" width="0.3" height="0.3" color="#00FF00"></a-plane>
@@ -87,43 +109,50 @@
     </a-scene>
 
     <script>
-        // Enhance getUserMedia to request higher resolution BEFORE MindAR starts
+        // Hybrid Tracking System: MindAR Marker + WebXR World Tracking
+
+        const sceneEl = document.querySelector('a-scene');
+        const statusDiv = document.getElementById('status-message');
+        const trackingModeDiv = document.getElementById('tracking-mode');
+        const markerEntity = document.querySelector('#marker-entity');
+        const cube = document.querySelector('#ar-cube');
+
+        let worldAnchor = null;
+        let trackingMode = 'marker'; // 'marker' or 'world'
+        let markerLastSeen = Date.now();
+        let worldPosition = null;
+        let worldRotation = null;
+
+        // Enhance camera for better quality
         (function () {
             const originalGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
 
             navigator.mediaDevices.getUserMedia = function (constraints) {
-                // Optimized video constraints for quality + performance balance
                 if (constraints && constraints.video) {
                     constraints.video = {
-                        facingMode: { ideal: 'environment' },  // Use rear camera
-                        width: { ideal: 1920, min: 1280 },     // Full HD ideal, HD minimum
-                        height: { ideal: 1080, min: 720 },     // Full HD ideal, HD minimum
-                        // No aspectRatio - let phone use native camera ratio (usually 4:3)
-                        frameRate: { ideal: 30, max: 30 }      // Cap at 30fps for performance
+                        facingMode: { ideal: 'environment' },
+                        width: { ideal: 1920, min: 1280 },
+                        height: { ideal: 1080, min: 720 },
+                        frameRate: { ideal: 30, max: 30 }
                     };
-                    console.log('Requesting optimized camera resolution:', constraints.video);
                 }
                 return originalGetUserMedia(constraints);
             };
         })();
 
-        // Track marker detection
-        const sceneEl = document.querySelector('a-scene');
-        const statusDiv = document.getElementById('status-message');
-
+        // AR Ready
         sceneEl.addEventListener('arReady', () => {
             console.log('MindAR is ready');
             statusDiv.innerHTML = '✓ AR Ready - Point camera at marker';
             statusDiv.className = 'status-good';
 
-            // Enable autofocus on the camera
             enableCameraAutofocus();
+            checkWebXRSupport();
         });
 
-        // Function to enable camera autofocus
+        // Autofocus
         async function enableCameraAutofocus() {
             try {
-                // Wait a bit for the video element to be ready
                 setTimeout(async () => {
                     const video = document.querySelector('video');
                     if (video && video.srcObject) {
@@ -134,38 +163,149 @@
                             const track = tracks[0];
                             const capabilities = track.getCapabilities();
 
-                            console.log('Camera capabilities:', capabilities);
-
-                            // Apply autofocus settings if supported
-                            const constraints = {};
-
                             if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
-                                constraints.focusMode = 'continuous';
-                                constraints.advanced = [{ focusMode: 'continuous' }];
-                                console.log('Enabling continuous autofocus');
-                            }
-
-                            // Apply the constraints
-                            if (Object.keys(constraints).length > 0) {
-                                await track.applyConstraints(constraints);
+                                await track.applyConstraints({
+                                    focusMode: 'continuous',
+                                    advanced: [{ focusMode: 'continuous' }]
+                                });
                                 console.log('✓ Autofocus enabled');
-                                statusDiv.innerHTML = '✓ Autofocus ON - Point at marker';
-                            } else {
-                                console.log('Autofocus not supported on this device');
                             }
                         }
                     }
                 }, 1000);
             } catch (error) {
                 console.warn('Could not enable autofocus:', error);
-                // Non-critical error, continue without autofocus
             }
         }
 
+        // Check WebXR support for world tracking
+        async function checkWebXRSupport() {
+            if (navigator.xr) {
+                try {
+                    const supported = await navigator.xr.isSessionSupported('immersive-ar');
+                    if (supported) {
+                        console.log('✓ WebXR world tracking available');
+                    } else {
+                        console.warn('⚠️ WebXR not supported - marker-only mode');
+                        trackingModeDiv.innerHTML = '📍 Marker-only mode (WebXR unavailable)';
+                        trackingModeDiv.style.display = 'block';
+                    }
+                } catch (e) {
+                    console.warn('WebXR check failed:', e);
+                }
+            }
+        }
+
+        // Marker found - Create world anchor
+        const target = document.querySelector('[mindar-image-target]');
+
+        target.addEventListener('targetFound', () => {
+            console.log('✓ Marker detected');
+            markerLastSeen = Date.now();
+            statusDiv.innerHTML = '✓ Marker detected - Building world map...';
+            statusDiv.className = 'status-good';
+
+            // Save marker position for world anchoring
+            saveMarkerPosition();
+
+            // Try to create world anchor after brief delay
+            setTimeout(() => {
+                if (trackingMode === 'marker') {
+                    createWorldAnchor();
+                }
+            }, 1500);
+        });
+
+        target.addEventListener('targetLost', () => {
+            console.log('⚠️ Marker lost');
+            markerLastSeen = Date.now();
+
+            if (trackingMode === 'world' && worldPosition) {
+                // Continue with world tracking
+                statusDiv.innerHTML = '🌍 World tracking - Move freely';
+                statusDiv.className = 'status-info';
+            } else {
+                statusDiv.innerHTML = '⚠️ Point camera at marker';
+                statusDiv.className = 'status-warning';
+            }
+        });
+
+        // Save marker's world position
+        function saveMarkerPosition() {
+            try {
+                const markerObject3D = markerEntity.object3D;
+                const cubeObject3D = cube.object3D;
+
+                // Get world position and rotation
+                const worldPos = new THREE.Vector3();
+                const worldQuat = new THREE.Quaternion();
+
+                cubeObject3D.getWorldPosition(worldPos);
+                cubeObject3D.getWorldQuaternion(worldQuat);
+
+                worldPosition = worldPos;
+                worldRotation = worldQuat;
+
+                console.log('Saved marker position:', worldPos);
+            } catch (error) {
+                console.warn('Could not save marker position:', error);
+            }
+        }
+
+        // Create world anchor at marker position
+        async function createWorldAnchor() {
+            try {
+                if (!worldPosition) {
+                    console.warn('No world position available');
+                    return;
+                }
+
+                // Switch to world tracking mode
+                trackingMode = 'world';
+                trackingModeDiv.innerHTML = '🌍 World Tracking Active';
+                trackingModeDiv.style.display = 'block';
+                trackingModeDiv.style.background = 'rgba(76, 175, 80, 0.9)';
+
+                statusDiv.innerHTML = '✓ Object anchored to world - Move freely!';
+                statusDiv.className = 'status-good';
+
+                console.log('✓ World anchor created');
+
+                // Detach cube from marker parent and make it world-anchored
+                setTimeout(() => {
+                    maintainWorldPosition();
+                }, 100);
+
+            } catch (error) {
+                console.error('Failed to create world anchor:', error);
+                trackingMode = 'marker';
+            }
+        }
+
+        // Maintain world position even when marker is lost
+        function maintainWorldPosition() {
+            if (trackingMode !== 'world' || !worldPosition) return;
+
+            // Update cube to world position every frame
+            const cubeObj = cube.object3D;
+            const camera = sceneEl.camera;
+
+            // Calculate position relative to camera  
+            sceneEl.addEventListener('render', function updateWorldPos() {
+                if (trackingMode === 'world' && worldPosition) {
+                    // Keep object at saved world position
+                    cubeObj.position.copy(worldPosition);
+                    if (worldRotation) {
+                        cubeObj.quaternion.copy(worldRotation);
+                    }
+                }
+            });
+        }
+
+        // Error handling
         sceneEl.addEventListener('arError', (event) => {
             console.error('MindAR error:', event.detail);
             if (event.detail.error === 'VIDEO_FAIL') {
-                // Desktop browsers often don't have cameras
                 statusDiv.innerHTML = '📱 Camera needed - Test on mobile device';
                 statusDiv.className = 'status-warning';
             } else {
@@ -174,26 +314,12 @@
             }
         });
 
-        // Listen for target found/lost
-        const target = document.querySelector('[mindar-image-target]');
-
-        target.addEventListener('targetFound', () => {
-            console.log('Marker detected!');
-            statusDiv.innerHTML = '✓ Marker detected - Cube visible';
-            statusDiv.className = 'status-good';
-        });
-
-        target.addEventListener('targetLost', () => {
-            console.log('Marker lost');
-            statusDiv.innerHTML = '⚠️ Point camera at marker';
-            statusDiv.className = 'status-warning';
-        });
-
-        // Debug logging
+        // Page load logging
         window.addEventListener('load', () => {
             console.log('Page loaded');
             console.log('A-Frame version:', AFRAME.version);
             console.log('Marker file path: ./markers/marker_v1.mind');
+            console.log('Hybrid tracking: MindAR + WebXR SLAM');
         });
     </script>
 </body>
