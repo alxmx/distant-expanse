@@ -233,7 +233,6 @@
         // Save marker's world position
         function saveMarkerPosition() {
             try {
-                const markerObject3D = markerEntity.object3D;
                 const cubeObject3D = cube.object3D;
 
                 // Get world position and rotation
@@ -243,8 +242,8 @@
                 cubeObject3D.getWorldPosition(worldPos);
                 cubeObject3D.getWorldQuaternion(worldQuat);
 
-                worldPosition = worldPos;
-                worldRotation = worldQuat;
+                worldPosition = worldPos.clone();
+                worldRotation = worldQuat.clone();
 
                 console.log('Saved marker position:', worldPos);
             } catch (error) {
@@ -260,6 +259,25 @@
                     return;
                 }
 
+                // CRITICAL: Detach cube from marker parent and attach to scene
+                const sceneObj = sceneEl.object3D;
+                const cubeObj = cube.object3D;
+                const markerObj = markerEntity.object3D;
+
+                // Save current world transform
+                const savedPos = worldPosition.clone();
+                const savedRot = worldRotation.clone();
+
+                // Remove from marker parent
+                markerObj.remove(cubeObj);
+
+                // Add directly to scene at world position
+                sceneObj.add(cubeObj);
+
+                // Set world position and rotation
+                cubeObj.position.copy(savedPos);
+                cubeObj.quaternion.copy(savedRot);
+
                 // Switch to world tracking mode
                 trackingMode = 'world';
                 trackingModeDiv.innerHTML = '🌍 World Tracking Active';
@@ -269,12 +287,7 @@
                 statusDiv.innerHTML = '✓ Object anchored to world - Move freely!';
                 statusDiv.className = 'status-good';
 
-                console.log('✓ World anchor created');
-
-                // Detach cube from marker parent and make it world-anchored
-                setTimeout(() => {
-                    maintainWorldPosition();
-                }, 100);
+                console.log('✓ Cube detached from marker and anchored to world at:', savedPos);
 
             } catch (error) {
                 console.error('Failed to create world anchor:', error);
@@ -282,24 +295,11 @@
             }
         }
 
-        // Maintain world position even when marker is lost
+        // Maintain world position - Now cube is independent of marker
         function maintainWorldPosition() {
-            if (trackingMode !== 'world' || !worldPosition) return;
-
-            // Update cube to world position every frame
-            const cubeObj = cube.object3D;
-            const camera = sceneEl.camera;
-
-            // Calculate position relative to camera  
-            sceneEl.addEventListener('render', function updateWorldPos() {
-                if (trackingMode === 'world' && worldPosition) {
-                    // Keep object at saved world position
-                    cubeObj.position.copy(worldPosition);
-                    if (worldRotation) {
-                        cubeObj.quaternion.copy(worldRotation);
-                    }
-                }
-            });
+            // Cube is now a child of scene, not marker
+            // Position is already set, so it will stay in place
+            console.log('World position maintained - cube is scene child');
         }
 
         // Error handling
