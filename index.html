@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MindAR + WebXR SLAM Tracking</title>
+    <title>MindAR Marker Tracking</title>
 
     <!-- A-Frame -->
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
@@ -45,25 +45,6 @@
         .status-error {
             color: #f44336;
         }
-
-        .status-info {
-            color: #2196f3;
-        }
-
-        #tracking-mode {
-            position: fixed;
-            top: 70px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(33, 150, 243, 0.9);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-family: Arial, sans-serif;
-            z-index: 1000;
-            font-size: 12px;
-            display: none;
-        }
     </style>
 </head>
 
@@ -72,9 +53,7 @@
         <div id="status-message" class="status-good">✓ Point camera at marker</div>
     </div>
 
-    <div id="tracking-mode"></div>
-
-    <!-- A-Frame Scene with MindAR + WebXR -->
+    <!-- A-Frame Scene with MindAR -->
     <a-scene mindar-image="imageTargetSrc: ./markers/marker_v1.mind; 
                   autoStart: true;
                   uiLoading: no;
@@ -85,16 +64,15 @@
                   warmupTolerance: 10;
                   missTolerance: 15;
                   maxTrack: 1;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights"
-        vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false"
-        webxr="requiredFeatures: hit-test,anchors;">
+        vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
 
         <!-- Camera -->
         <a-camera position="0 0 0" look-controls="enabled: false" user-height="0"></a-camera>
 
-        <!-- Marker Target with World Anchor -->
-        <a-entity id="marker-entity" mindar-image-target="targetIndex: 0">
+        <!-- Marker Target -->
+        <a-entity mindar-image-target="targetIndex: 0">
             <!-- Rotating colorful cube -->
-            <a-box id="ar-cube" position="0 0.2 0" rotation="0 0 0" material="color: #FF0000; shader: flat"
+            <a-box position="0 0.2 0" rotation="0 0 0" material="color: #FF0000; shader: flat"
                 animation="property: rotation; to: 360 360 360; loop: true; dur: 10000; easing: linear">
 
                 <!-- Different colored faces -->
@@ -109,19 +87,10 @@
     </a-scene>
 
     <script>
-        // Hybrid Tracking System: MindAR Marker + WebXR World Tracking
+        // MindAR Marker Tracking (Optimized & Stable)
 
         const sceneEl = document.querySelector('a-scene');
         const statusDiv = document.getElementById('status-message');
-        const trackingModeDiv = document.getElementById('tracking-mode');
-        const markerEntity = document.querySelector('#marker-entity');
-        const cube = document.querySelector('#ar-cube');
-
-        let worldAnchor = null;
-        let trackingMode = 'marker'; // 'marker' or 'world'
-        let markerLastSeen = Date.now();
-        let worldPosition = null;
-        let worldRotation = null;
 
         // Enhance camera for better quality
         (function () {
@@ -135,6 +104,7 @@
                         height: { ideal: 1080, min: 720 },
                         frameRate: { ideal: 30, max: 30 }
                     };
+                    console.log('Requesting optimized camera resolution:', constraints.video);
                 }
                 return originalGetUserMedia(constraints);
             };
@@ -147,7 +117,6 @@
             statusDiv.className = 'status-good';
 
             enableCameraAutofocus();
-            checkWebXRSupport();
         });
 
         // Autofocus
@@ -169,6 +138,7 @@
                                     advanced: [{ focusMode: 'continuous' }]
                                 });
                                 console.log('✓ Autofocus enabled');
+                                statusDiv.innerHTML = '✓ Autofocus ON - Point at marker';
                             }
                         }
                     }
@@ -178,129 +148,20 @@
             }
         }
 
-        // Check WebXR support for world tracking
-        async function checkWebXRSupport() {
-            if (navigator.xr) {
-                try {
-                    const supported = await navigator.xr.isSessionSupported('immersive-ar');
-                    if (supported) {
-                        console.log('✓ WebXR world tracking available');
-                    } else {
-                        console.warn('⚠️ WebXR not supported - marker-only mode');
-                        trackingModeDiv.innerHTML = '📍 Marker-only mode (WebXR unavailable)';
-                        trackingModeDiv.style.display = 'block';
-                    }
-                } catch (e) {
-                    console.warn('WebXR check failed:', e);
-                }
-            }
-        }
-
-        // Marker found - Create world anchor
+        // Marker detection events
         const target = document.querySelector('[mindar-image-target]');
 
         target.addEventListener('targetFound', () => {
             console.log('✓ Marker detected');
-            markerLastSeen = Date.now();
-            statusDiv.innerHTML = '✓ Marker detected - Building world map...';
+            statusDiv.innerHTML = '✓ Marker detected - Cube visible';
             statusDiv.className = 'status-good';
-
-            // Save marker position for world anchoring
-            saveMarkerPosition();
-
-            // Try to create world anchor after brief delay
-            setTimeout(() => {
-                if (trackingMode === 'marker') {
-                    createWorldAnchor();
-                }
-            }, 1500);
         });
 
         target.addEventListener('targetLost', () => {
             console.log('⚠️ Marker lost');
-            markerLastSeen = Date.now();
-
-            if (trackingMode === 'world' && worldPosition) {
-                // Continue with world tracking
-                statusDiv.innerHTML = '🌍 World tracking - Move freely';
-                statusDiv.className = 'status-info';
-            } else {
-                statusDiv.innerHTML = '⚠️ Point camera at marker';
-                statusDiv.className = 'status-warning';
-            }
+            statusDiv.innerHTML = '⚠️ Point camera at marker';
+            statusDiv.className = 'status-warning';
         });
-
-        // Save marker's world position
-        function saveMarkerPosition() {
-            try {
-                const cubeObject3D = cube.object3D;
-
-                // Get world position and rotation
-                const worldPos = new THREE.Vector3();
-                const worldQuat = new THREE.Quaternion();
-
-                cubeObject3D.getWorldPosition(worldPos);
-                cubeObject3D.getWorldQuaternion(worldQuat);
-
-                worldPosition = worldPos.clone();
-                worldRotation = worldQuat.clone();
-
-                console.log('Saved marker position:', worldPos);
-            } catch (error) {
-                console.warn('Could not save marker position:', error);
-            }
-        }
-
-        // Create world anchor at marker position
-        async function createWorldAnchor() {
-            try {
-                if (!worldPosition) {
-                    console.warn('No world position available');
-                    return;
-                }
-
-                // CRITICAL: Detach cube from marker parent and attach to scene
-                const sceneObj = sceneEl.object3D;
-                const cubeObj = cube.object3D;
-                const markerObj = markerEntity.object3D;
-
-                // Save current world transform
-                const savedPos = worldPosition.clone();
-                const savedRot = worldRotation.clone();
-
-                // Remove from marker parent
-                markerObj.remove(cubeObj);
-
-                // Add directly to scene at world position
-                sceneObj.add(cubeObj);
-
-                // Set world position and rotation
-                cubeObj.position.copy(savedPos);
-                cubeObj.quaternion.copy(savedRot);
-
-                // Switch to world tracking mode
-                trackingMode = 'world';
-                trackingModeDiv.innerHTML = '🌍 World Tracking Active';
-                trackingModeDiv.style.display = 'block';
-                trackingModeDiv.style.background = 'rgba(76, 175, 80, 0.9)';
-
-                statusDiv.innerHTML = '✓ Object anchored to world - Move freely!';
-                statusDiv.className = 'status-good';
-
-                console.log('✓ Cube detached from marker and anchored to world at:', savedPos);
-
-            } catch (error) {
-                console.error('Failed to create world anchor:', error);
-                trackingMode = 'marker';
-            }
-        }
-
-        // Maintain world position - Now cube is independent of marker
-        function maintainWorldPosition() {
-            // Cube is now a child of scene, not marker
-            // Position is already set, so it will stay in place
-            console.log('World position maintained - cube is scene child');
-        }
 
         // Error handling
         sceneEl.addEventListener('arError', (event) => {
@@ -318,8 +179,8 @@
         window.addEventListener('load', () => {
             console.log('Page loaded');
             console.log('A-Frame version:', AFRAME.version);
-            console.log('Marker file path: ./markers/marker_v1.mind');
-            console.log('Hybrid tracking: MindAR + WebXR SLAM');
+            console.log('Marker file: ./markers/marker_v1.mind');
+            console.log('Marker tracking: Optimized & stable');
         });
     </script>
 </body>
