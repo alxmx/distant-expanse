@@ -1,0 +1,181 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MindAR Marker Tracking</title>
+
+    <!-- A-Frame -->
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+
+    <!-- MindAR A-Frame Integration (more stable CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #info-overlay {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-family: Arial, sans-serif;
+            z-index: 1000;
+            text-align: center;
+            max-width: 80%;
+            font-size: 14px;
+        }
+
+        .status-good {
+            color: #4caf50;
+        }
+
+        .status-warning {
+            color: #ff9800;
+        }
+
+        .status-error {
+            color: #f44336;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="info-overlay">
+        <div id="status-message" class="status-good">✓ Point camera at marker</div>
+    </div>
+
+    <!-- A-Frame Scene with MindAR -->
+    <a-scene mindar-image="imageTargetSrc: ./markers/marker_v1.mind; 
+                  autoStart: true;
+                  uiLoading: no;
+                  uiScanning: no;
+                  uiError: no;
+                  filterMinCF: 0.00001; 
+                  filterBeta: 0.0005;
+                  warmupTolerance: 10;
+                  missTolerance: 15;
+                  maxTrack: 1;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights"
+        vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">>
+
+        <!-- Camera with autofocus enabled -->
+        <a-camera position="0 0 0" look-controls="enabled: false" user-height="0"></a-camera>
+
+        <!-- Marker Target -->
+        <a-entity mindar-image-target="targetIndex: 0">
+            <!-- Rotating colorful cube -->
+            <a-box position="0 0.2 0" rotation="0 0 0" material="color: #FF0000; shader: flat"
+                animation="property: rotation; to: 360 360 360; loop: true; dur: 10000; easing: linear">
+
+                <!-- Add different colored faces using planes -->
+                <a-plane position="0 0 0.1501" rotation="0 0 0" width="0.3" height="0.3" color="#FF0000"></a-plane>
+                <a-plane position="0 0 -0.1501" rotation="0 180 0" width="0.3" height="0.3" color="#0000FF"></a-plane>
+                <a-plane position="0.1501 0 0" rotation="0 90 0" width="0.3" height="0.3" color="#00FF00"></a-plane>
+                <a-plane position="-0.1501 0 0" rotation="0 -90 0" width="0.3" height="0.3" color="#FF00FF"></a-plane>
+                <a-plane position="0 0.1501 0" rotation="-90 0 0" width="0.3" height="0.3" color="#00FFFF"></a-plane>
+                <a-plane position="0 -0.1501 0" rotation="90 0 0" width="0.3" height="0.3" color="#FFFF00"></a-plane>
+            </a-box>
+        </a-entity>
+    </a-scene>
+
+    <script>
+        // Track marker detection
+        const sceneEl = document.querySelector('a-scene');
+        const statusDiv = document.getElementById('status-message');
+
+        sceneEl.addEventListener('arReady', () => {
+            console.log('MindAR is ready');
+            statusDiv.innerHTML = '✓ AR Ready - Point camera at marker';
+            statusDiv.className = 'status-good';
+
+            // Enable autofocus on the camera
+            enableCameraAutofocus();
+        });
+
+        // Function to enable camera autofocus
+        async function enableCameraAutofocus() {
+            try {
+                // Wait a bit for the video element to be ready
+                setTimeout(async () => {
+                    const video = document.querySelector('video');
+                    if (video && video.srcObject) {
+                        const stream = video.srcObject;
+                        const tracks = stream.getVideoTracks();
+
+                        if (tracks.length > 0) {
+                            const track = tracks[0];
+                            const capabilities = track.getCapabilities();
+
+                            console.log('Camera capabilities:', capabilities);
+
+                            // Apply autofocus settings if supported
+                            const constraints = {};
+
+                            if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
+                                constraints.focusMode = 'continuous';
+                                constraints.advanced = [{ focusMode: 'continuous' }];
+                                console.log('Enabling continuous autofocus');
+                            }
+
+                            // Apply the constraints
+                            if (Object.keys(constraints).length > 0) {
+                                await track.applyConstraints(constraints);
+                                console.log('✓ Autofocus enabled');
+                                statusDiv.innerHTML = '✓ Autofocus ON - Point at marker';
+                            } else {
+                                console.log('Autofocus not supported on this device');
+                            }
+                        }
+                    }
+                }, 1000);
+            } catch (error) {
+                console.warn('Could not enable autofocus:', error);
+                // Non-critical error, continue without autofocus
+            }
+        }
+
+        sceneEl.addEventListener('arError', (event) => {
+            console.error('MindAR error:', event.detail);
+            if (event.detail.error === 'VIDEO_FAIL') {
+                // Desktop browsers often don't have cameras
+                statusDiv.innerHTML = '📱 Camera needed - Test on mobile device';
+                statusDiv.className = 'status-warning';
+            } else {
+                statusDiv.innerHTML = '❌ AR Error: ' + event.detail.error;
+                statusDiv.className = 'status-error';
+            }
+        });
+
+        // Listen for target found/lost
+        const target = document.querySelector('[mindar-image-target]');
+
+        target.addEventListener('targetFound', () => {
+            console.log('Marker detected!');
+            statusDiv.innerHTML = '✓ Marker detected - Cube visible';
+            statusDiv.className = 'status-good';
+        });
+
+        target.addEventListener('targetLost', () => {
+            console.log('Marker lost');
+            statusDiv.innerHTML = '⚠️ Point camera at marker';
+            statusDiv.className = 'status-warning';
+        });
+
+        // Debug logging
+        window.addEventListener('load', () => {
+            console.log('Page loaded');
+            console.log('A-Frame version:', AFRAME.version);
+            console.log('Marker file path: ./markers/marker_v1.mind');
+        });
+    </script>
+</body>
+
+</html>

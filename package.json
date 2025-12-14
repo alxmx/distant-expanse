@@ -1,0 +1,23 @@
+{
+    "name": "hello-webxr",
+    "version": "1.0.0",
+    "description": "A simple WebXR AR application with a colored 3D cube",
+    "main": "index.html",
+    "scripts": {
+        "dev": "vite --host",
+        "build": "vite build",
+        "preview": "vite preview --host"
+    },
+    "keywords": [
+        "webxr",
+        "ar",
+        "three.js",
+        "augmented-reality"
+    ],
+    "author": "",
+    "license": "MIT",
+    "devDependencies": {
+        "@vitejs/plugin-basic-ssl": "^1.1.0",
+        "vite": "^5.0.0"
+    }
+}
