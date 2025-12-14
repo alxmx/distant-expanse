@@ -56,15 +56,15 @@
     <!-- A-Frame Scene with MindAR -->
     <a-scene mindar-image="imageTargetSrc: ./markers/marker_v1.mind; 
                   autoStart: true;
-                  uiLoading: no;
+                  uiLoading: yes;
                   uiScanning: no;
                   uiError: no;
-                  filterMinCF: 0.00001; 
+                  filterMinCF: 0.0005; 
                   filterBeta: 0.0005;
-                  warmupTolerance: 10;
-                  missTolerance: 15;
+                  warmupTolerance: 5;
+                  missTolerance: 10;
                   maxTrack: 1;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights"
-        vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">>
+        vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
 
         <!-- Camera with autofocus enabled -->
         <a-camera position="0 0 0" look-controls="enabled: false" user-height="0"></a-camera>
@@ -87,6 +87,26 @@
     </a-scene>
 
     <script>
+        // Enhance getUserMedia to request higher resolution BEFORE MindAR starts
+        (function () {
+            const originalGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+
+            navigator.mediaDevices.getUserMedia = function (constraints) {
+                // Optimized video constraints for quality + performance balance
+                if (constraints && constraints.video) {
+                    constraints.video = {
+                        facingMode: { ideal: 'environment' },  // Use rear camera
+                        width: { ideal: 1920, min: 1280 },     // Full HD ideal, HD minimum
+                        height: { ideal: 1080, min: 720 },     // Full HD ideal, HD minimum
+                        // No aspectRatio - let phone use native camera ratio (usually 4:3)
+                        frameRate: { ideal: 30, max: 30 }      // Cap at 30fps for performance
+                    };
+                    console.log('Requesting optimized camera resolution:', constraints.video);
+                }
+                return originalGetUserMedia(constraints);
+            };
+        })();
+
         // Track marker detection
         const sceneEl = document.querySelector('a-scene');
         const statusDiv = document.getElementById('status-message');
