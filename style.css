@@ -554,6 +554,14 @@ body {
   text-transform: uppercase;
   letter-spacing: -0.5px;
   margin-bottom: 8px;
+  /* Fun styling for "Build, explore and create new inventions!" */
+  background: linear-gradient(135deg, #FF6B6B 0%, #556270 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.1);
+  transform: rotate(-1deg);
+  display: inline-block;
 }
 
 .emoji-banner {
@@ -1492,15 +1500,24 @@ body {
 
 .mascot-image {
   position: absolute;
-  /* ADJust THESE VALUES TO MOVE THE MASCOT */
-  top: 10px;
-  right: 10px;
-  width: 80px;
+  /* Next to the logo (logo is 128px wide, centered) */
+  top: -20px;
+  left: 50%;
+  margin-left: 40px;
+  /* Offset from center (Moved 30px left from 70px) */
+  width: 320px;
   object-fit: contain;
   transform: rotate(10deg);
   z-index: 10;
   animation: float 4s ease-in-out infinite;
-  pointer-events: none;
+  pointer-events: auto;
+  transition: transform 0.3s ease;
+  cursor: pointer;
+}
+
+.mascot-image:hover {
+  transform: rotate(10deg) scale(1.2);
+  animation-play-state: paused;
 }
 
 /* AR Features Menu (Bottom Consolidated Menu) */
@@ -1532,8 +1549,20 @@ body {
   transform: none;
   width: 100%;
   display: flex;
+  flex-direction: row;
+  /* Ensure row layout */
   justify-content: center;
   gap: 8px;
+}
+
+.feature-name-display {
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-slate-800);
+  padding: 4px 0;
+  min-height: 24px;
+  animation: fadeIn 0.2s ease;
 }
 
 /* Menu Divider */

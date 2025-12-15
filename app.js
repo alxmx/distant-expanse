@@ -368,6 +368,17 @@ function switchModel(index) {
     document.querySelectorAll('.model-btn').forEach((btn, i) => {
         btn.classList.toggle('active', i === index);
     });
+
+    // Update name display
+    const feature = FEATURES[index];
+    const nameDisplay = document.getElementById('feature-name-display');
+    if (nameDisplay && feature) {
+        nameDisplay.textContent = feature.name;
+        // Re-trigger animation
+        nameDisplay.style.animation = 'none';
+        nameDisplay.offsetHeight; /* trigger reflow */
+        nameDisplay.style.animation = 'fadeIn 0.2s ease';
+    }
 }
 
 function renderModelSelector() {
@@ -428,6 +439,16 @@ function playSound(featureId) {
         btn?.classList.remove('playing');
         currentAudio = null;
     };
+
+    // Update name display
+    const nameDisplay = document.getElementById('feature-name-display');
+    if (nameDisplay) {
+        nameDisplay.textContent = `${feature.name} Audio`;
+        // Re-trigger animation
+        nameDisplay.style.animation = 'none';
+        nameDisplay.offsetHeight; /* trigger reflow */
+        nameDisplay.style.animation = 'fadeIn 0.2s ease';
+    }
 }
 
 function updateARStatus(found, message) {
