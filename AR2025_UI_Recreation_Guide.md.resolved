@@ -1,0 +1,1057 @@
+# AR2025 Museum Experience - UI/UX Recreation Guide
+
+> **Project Title**: Danmarks Tekniske Museum AR Experience  
+> **Purpose**: Complete documentation of UI/UX design, colors, sections, and content for recreation in a new AR architecture  
+> **Target Tech Stack**: Vite + React + TypeScript + MindAR (already set up)
+
+---
+
+## 🎨 COLOR PALETTE & DESIGN THEME
+
+### Primary Colors
+```css
+--color-primary: hsl(24 95% 53%)           /* Orange (#ea580c) */
+--color-primary-foreground: hsl(0 0% 100%)  /* White */
+```
+
+### Secondary & Accent Colors
+```css
+--color-secondary: hsl(24 10% 96%)              /* Light beige */
+--color-secondary-foreground: hsl(24 95% 53%)   /* Orange */
+--color-accent: hsl(24 10% 96%)                 /* Light beige */
+--color-accent-foreground: hsl(24 95% 53%)      /* Orange */
+```
+
+### Background & Surface
+```css
+--color-background: hsl(0 0% 100%)          /* White */
+--color-foreground: hsl(222.2 84% 4.9%)     /* Dark blue-gray */
+--color-muted: hsl(24 10% 96%)              /* Light beige */
+--color-muted-foreground: hsl(215.4 16.3% 46.9%)  /* Medium gray */
+```
+
+### Semantic Colors
+```css
+--color-border: hsl(220 13% 91%)            /* Light gray */
+--color-input: hsl(220 13% 91%)             /* Light gray */
+--color-ring: hsl(24 95% 53%)               /* Orange */
+--color-destructive: hsl(0 84.2% 60.2%)     /* Red */
+--color-destructive-foreground: hsl(210 40% 98%)  /* Off-white */
+```
+
+### Feature-Specific Colors
+```javascript
+Bell 47G Helicopter: '#2563eb'     // Blue
+Ellehammer Wings: '#dc2626'        // Red
+Glenten Engine: '#ea580c'          // Orange
+Saab Wheels: '#16a34a'             // Green
+```
+
+### Border Radius
+```css
+--radius: 0.75rem  /* 12px - used throughout for rounded corners */
+```
+
+### Design Theme
+- **Kid-Friendly**: Vibrant colors, large touch targets, playful icons
+- **Museum Context**: Clean, educational, with aviation themes (✈️ 🚁 🚗)
+- **Color Scheme**: Orange primary with colorful accent cards (blue, green, violet, emerald)
+- **Typography**: Clean, bold headings with clear hierarchy
+- **Backgrounds**: Gradient overlays (from-blue-50 to-purple-50, slate-50)
+
+---
+
+## 📱 APPLICATION STRUCTURE
+
+### Screen Navigation Flow
+```
+Home (default)
+├── Instructions (Paper plane folding)
+├── AR View (camera + AR overlay)
+│   └── Floating Menu (quick access)
+├── Scanner (QR code scanner)
+├── Collection Gallery (collected items)
+├── Route Map (museum waypoints)
+└── Paper Plane Viewer (customization)
+```
+
+### Navigation Context
+- **History-based navigation**: Back button returns to previous screen
+- **State persistence**: Uses localStorage for unlocked features
+
+---
+
+## 🏠 SECTION 1: HOME SCREEN
+
+### Layout
+- **Background**: `bg-slate-50` with bottom padding for scrolling
+- **Container**: Centered, max-width 512px (max-w-lg)
+- **Spacing**: 6-unit gaps between sections
+
+### Header Section
+```
+Logo Container:
+- Size: 32x32 (w-32 h-32)
+- Style: Orange background (bg-orange-500), rounded-3xl, rotated 3 degrees
+- Contains: Official museum logo (white/inverted)
+- Border: 4px bottom border in darker orange (border-orange-700)
+
+Title:
+- Text: "Danmarks Tekniske Museum"
+- Style: 2xl, extrabold, slate-800, uppercase, tight tracking
+
+Subtitle:
+- Emoji banner: 🚗 🚁 ✈️
+- Style: Inline badge with white/50 background, rounded-full
+```
+
+### Mission Control Grid (2x2 grid with full-width items)
+
+#### Card 1: Build Plane (Top-Left)
+```
+Background: bg-blue-500
+Icon: Plane (lucide-react)
+Title: "Build Plane"
+Subtitle: "Fold your jet!"
+Size: Min height 160px
+Decorative: White/10 circle overlay (top-right)
+Action: Navigate to Instructions
+```
+
+#### Card 2: AR Scanner (Top-Right)
+```
+Background: bg-emerald-500 (or bg-green-500 when completed)
+Icon: Camera or CheckCircle (if scanned)
+Title: "AR, use your camera"
+Subtitle: "Enter AR World"
+Size: Min height 160px
+Decorative: White/10 circle overlay
+Action: Navigate to AR View
+Conditional: Shows green + checkmark when hasScannedPlane is true
+```
+
+#### Card 3: Start Mission (Full Width)
+```
+Background: bg-orange-500
+Icon: Map
+Title: "Start Mission"
+Subtitle: "Follow the Adventure Map"
+Layout: Horizontal flex with arrow icon on right
+Decorative: Dashed white/30 line across middle
+Action: Navigate to Route Map
+```
+
+#### Card 4: My Hangar (Full Width)
+```
+Background: bg-violet-500
+Icon: Star (filled if items collected)
+Title: "My Hangar"
+Subtitle: "{count} Items Collected"
+Preview: 3 circular badges showing collection status (★ or ?)
+Colors: Yellow-400 for collected, violet-700 for locked
+Action: Navigate to Collection Gallery
+```
+
+### Pro Tip Section
+```
+Background: White with slate border
+Icon: 💡 emoji
+Text: "Pro Pilot Tip: Keep your paper plane wings smooth for the best AR tracking!"
+Style: Small, informative card at bottom
+```
+
+### Animations
+- Initial fade-in and slide-up (opacity 0→1, y: 20→0)
+- Logo scale animation (0.8→1)
+- Card hover: scale 1.02
+- Card tap: scale 0.98
+
+---
+
+## 📋 SECTION 2: PAPER PLANE INSTRUCTIONS
+
+### Header
+```
+Background: White/80 with backdrop blur, sticky
+Title: "Paper Plane Instructions"
+Subtitle: "Create your AR-enabled paper plane"
+Back Button: Ghost variant with ArrowLeft icon
+```
+
+### Background
+- Gradient: `from-blue-50 to-purple-50`
+
+### Design Selector Card
+```
+Background: Gradient from-primary to-orange-600
+Text Color: White
+Toggle Options: "Classic Dart" | "The Glider"
+Style: Segmented control with white background for selected
+```
+
+### Preview Card
+```
+Aspect Ratio: Video (16:9)
+Background: slate-100
+Content: Placeholder with Send icon + description
+Border: 2px primary/10
+Top accent: Gradient line (horizontal)
+```
+
+### Instruction Steps
+```
+Layout: Vertical list with numbered cards
+Card Style:
+- White background with hover shadow
+- Number badge: Gradient (primary to orange), circular, white text
+- Icon: From lucide-react (FileText, Triangle, ArrowDown, etc.)
+- Title: Medium font, large text
+- Description: Muted foreground, small text
+
+Animation: Staggered entry (delay: index * 0.1s)
+```
+
+### Steps for Classic Dart:
+1. Start with a rectangle (FileText)
+2. Fold lengthwise (MoveVertical)
+3. Fold corners in (Triangle)
+4. Fold top down (ArrowDown)
+5. Fold corners again (Minimize2)
+6. Fold in half (BookOpen)
+7. Make the wings (Wind)
+8. Launch it! (Send - green card)
+
+### Steps for The Glider:
+1. Start with a rectangle (FileText)
+2. Fold lengthwise (MoveVertical)
+3. Fold corners to center (Triangle)
+4. Fold peak down (ArrowDown)
+5. Fold corners again (Minimize2)
+6. Lock the fold (Triangle)
+7. Fold backwards (BookOpen)
+8. Create wings (Wind)
+9. Launch it! (Send - green card)
+
+### Tips Section
+```
+Background: yellow-50 with yellow-200 border
+Icon: 💡 Pro Tips
+List Items:
+- Make crisp, clean folds for better flight performance
+- Test your plane before scanning - it should glide smoothly
+- The AR scanner works better with high-contrast patterns
+```
+
+### Action Button
+```
+Text: "I've Created My Plane!"
+Style: Green-600, large (h-12, text-lg), full width, shadow-lg
+Action: Navigate back to Home
+```
+
+---
+
+## 📸 SECTION 3: AR VIEW
+
+### Container
+- Full screen, absolute positioning (inset-0)
+- Background: Black
+- Z-index: 0
+
+### A-Frame Scene Configuration
+```html
+mindar-image attributes:
+- imageTargetSrc: /assets/trackers/targets.mind
+- autoStart: true
+- maxTrack: 2
+- uiLoading: no
+- uiError: no
+- uiScanning: no
+
+renderer:
+- colorManagement: true
+- physicallyCorrectLights: true
+- color-space: sRGB
+
+camera:
+- position: 0 0 0
+- look-controls: disabled
+- cursor fuse: false
+```
+
+### AR Assets Preloaded
+```
+- Card image: /assets/card.png
+- Model 1: /assets/models/REPLACE_MODEL_1.glb (Bell 47G)
+- Model 2: /assets/models/REPLACE_MODEL_2.glb (Ellehammer)
+- Model 3: /assets/models/REPLACE_MODEL_3.glb (Glenten)
+- Model 4: /assets/models/REPLACE_MODEL_4.glb (Saab)
+```
+
+### Target Configuration
+```
+Universal Tracker (Target Index 0):
+- Base plane: card.png (height: 0.552, width: 1)
+- Position: 0 0 0
+
+Models (conditionally visible based on activeFeatureId):
+- Position: 0 0.1 0
+- Scale: 1.5 1.5 1.5
+- Rotation: 0 0 0
+```
+
+### Star Counter Overlay (Top-Left)
+```
+Position: Absolute, top-6 left-6
+Style: White/90 background, backdrop blur, rounded-full
+Icon: Yellow star (filled)
+Count: {unlockedFeatureIds.length}
+Animation: Breathing (scale 1→1.1→1, infinite, 2s)
+Border: 2px primary/20
+```
+
+### Floating Menu (Bottom-Right)
+See Section 8 for details
+
+### Error Display
+```
+Condition: Camera permission denied or HTTPS issue
+Style: Black/90 background overlay
+Text: Red-500 heading + white error message
+Position: Centered, full screen
+```
+
+---
+
+## 🎯 SECTION 4: SCANNER VIEW
+
+### Container
+- Fixed, full screen (inset-0)
+- Background: Black
+- Z-index: 50
+
+### Header Bar
+```
+Position: Absolute top, full width
+Background: Black/50 with backdrop blur
+Text: White
+Button: Ghost variant with ArrowLeft icon
+Title: "Feature Scanner"
+```
+
+### Scanner Area
+```
+Component: @yudiel/react-qr-scanner
+Style: Full height and width
+Finder: Enabled (shows targeting frame)
+```
+
+### Overlay Instructions
+```
+Position: Absolute bottom (20 units from bottom)
+Text: "Point camera at a Feature QR Code"
+Color: White/80
+Style: Centered, non-interactive (pointer-events-none)
+```
+
+### Result Modal (AnimatePresence)
+```
+Background: Black/60 with backdrop blur
+Card Style: White, centered, max-width-sm
+Padding: 6 units
+Border: 2px white/10
+Shadow: 2xl
+
+Success State:
+- Icon: Green CheckCircle (size 16)
+- Title: Feature name + type (model/sound)
+- Message: Collection status + count
+- Primary Button: "Try it now!" (green-600)
+- Secondary Button: "Scan Next Item"
+
+Error State:
+- Icon: Red XCircle (size 16)
+- Title: "Unknown Item" or "Unknown Feature"
+- Message: Error description
+- Button: "Scan Next Item"
+
+Animation:
+- Entry: scale 0.9→1, opacity 0→1
+- Exit: scale 1→0.9, opacity 1→0
+```
+
+### QR Code Format Support
+```
+New Format: ar-collect:type:id
+- type: "model" or "sound"
+- id: feature ID (e.g., "bell_47g")
+- Example: "ar-collect:model:bell_47g"
+
+Legacy Format: ar-feature:id
+- Unlocks both model and sound
+- Example: "ar-feature:bell_47g"
+```
+
+### Confetti Animation
+- Triggered on collection completion
+- Component: Custom Confetti component
+
+---
+
+## 🖼️ SECTION 5: COLLECTION GALLERY
+
+### Header
+```
+Background: White with bottom border, sticky
+Title: "Collection" with Palette icon
+Back Button: Ghost variant
+Action Button: "Scan QR" (QrCode icon, black background)
+```
+
+### Stats Card
+```
+Background: Gradient from-primary/10 to-primary/5
+Content:
+- "Your Collection"
+- Count: {unlocked} / {total}
+- Progress: "{percentage}% Complete"
+Icon: Trophy (large, primary color, opacity-20)
+```
+
+### Search & Filter Bar
+```
+Search Input:
+- Icon: Search (left-aligned)
+- Placeholder: "Search..."
+- Full width on mobile
+
+Filter Select:
+- Icon: Filter
+- Options: All | Common | Uncommon | Rare | Epic
+- Width: 32 units
+```
+
+### Feature Grid
+```
+Layout: Responsive grid
+- Mobile: 1 column
+- SM: 2 columns
+- LG: 3 columns
+Gap: 4 units
+```
+
+### Feature Card
+```
+Preview Section (height 32):
+- Gradient background using feature color
+- Centered circular badge (feature color)
+- Rarity badge (top-right)
+
+Info Section:
+- Feature name (font-semibold)
+- Description (text-sm, muted)
+- Status badges: Model (blue), Sound (purple)
+- Collection date (Clock icon)
+- "Inspect" button
+
+Hover: Shadow-lg transition
+```
+
+### Rarity Colors
+```
+Common: Gray (border-gray-500, bg-gray-100)
+Uncommon: Green (border-green-500, bg-green-100)
+Rare: Blue (border-blue-500, bg-blue-100)
+Epic: Orange (border-orange-500, bg-orange-100)
+Legendary: Purple (border-purple-500, bg-purple-100)
+```
+
+### Detail Modal
+```
+Trigger: Click "Inspect" button
+Layout: Centered overlay, max-width-md
+Background: Black/50
+
+Card Contents:
+- Header: Feature name + close button
+- Preview: Large gradient circle (height 48)
+- Description section
+- Sound description (if available)
+- Rarity + Collection date grid
+- "View in AR" button (or disabled "Collect Model to View")
+
+Animation: fade-in + zoom-in-95
+```
+
+### Empty State
+```
+Icon: Palette (gray-300, size 16)
+Text: "No items found"
+Style: Centered, muted foreground
+```
+
+---
+
+## 🗺️ SECTION 6: ROUTE MAP
+
+### Header
+```
+Background: White with bottom border, sticky
+Title: "Aviation Hall Route" with MapPin icon
+Back Button: Ghost variant
+```
+
+### Progress Card
+```
+Title: "Route Progress"
+Description: "{progress}% Complete"
+Progress Bar: Height 2, primary color fill
+```
+
+### Map Visual
+```
+Container: Card with bg-white/50, backdrop-blur
+Dimensions: Full width, height 48 (192px)
+Content: SVG map mockup
+
+SVG Elements:
+- Grid pattern background (gray, opacity 0.1-0.2)
+- Building outline (slate color)
+- Room dividers (dashed lines)
+- Route path: Orange (#ea580c), dashed, animated pulse
+- Waypoint circles: Orange for active/complete, gray for inactive
+- Labels: "Start" and "Finish"
+- Mockup badge (bottom-right)
+```
+
+### Waypoints List
+```
+Layout: Vertical timeline with connecting line
+Line: Absolute left-6, gray-200, width 0.5
+
+Features (4 items × 2 types = 8 waypoints):
+1. Bell 47G Helicopter (model) - 🚁
+2. Bell 47G Audio (sound) - 🎵
+3. Ellehammer Wings (model) - ✈️
+4. Wind Tunnel Audio (sound) - 💨
+5. Glenten Engine (model) - ⚙️
+6. Radial Engine Sound (sound) - 🔊
+7. Saab Aircraft Wheels (model) - 🛞
+8. Hydraulic Gear Sound (sound) - 🛬
+```
+
+### Waypoint Card
+```
+Marker:
+- Circular, 12x12 units
+- Completed: Green-500 with CheckCircle icon
+- Active: Primary with white number
+- Inactive: White with gray number
+
+Card:
+- White background
+- Active: Primary border with ring
+- Padding: 4 units
+
+Header:
+- Emoji icon
+- Title (text-base)
+- "Done" badge (if completed)
+
+Content:
+- Description (text-xs)
+- Estimated time (Clock icon)
+- Feature type (Camera icon)
+- "Go" button (if active and not completed)
+```
+
+### Estimated Times
+```
+Model waypoints: 2-3 minutes
+Sound waypoints: 1 minute
+```
+
+---
+
+## ✈️ SECTION 7: PAPER PLANE VIEWER
+
+### Conditional Rendering
+**If not scanned**: Shows locked state with message
+**If scanned**: Shows full customization interface
+
+### Header
+```
+Back button + "Customize Plane" title
+Background: Standard page background
+```
+
+### Viewer Card
+```
+Title: "My Paper Plane" with Plane icon
+Description: "Customize your paper plane with collected museum features"
+```
+
+### 3D Viewer Simulation
+```
+Container:
+- Aspect ratio: Square
+- Background: Gradient from-blue-100 to-purple-100
+- Rounded corners
+
+Paper Plane Shape:
+- CSS clip-path: triangle (polygon 50% 0%, 0% 100%, 100% 100%)
+- 3D transform: perspective + rotateX
+- Size: 48x48 units (192px)
+- Color: White with shadow
+
+Feature Overlays:
+- Applied based on selectedFeatures
+- Gradient using feature color
+- Mix-blend-multiply
+- Adjustable opacity
+- Same triangle clip-path
+
+Fold Lines:
+- Gray-300, diagonal lines
+- Decorative detail
+```
+
+### View Controls (Bottom Overlay)
+```
+Background: White/90 with backdrop blur
+Layout: Horizontal flex
+
+Rotation Slider:
+- Range: 0-360 degrees
+- Step: 15 degrees
+- Width: 24 units
+- Display: Current angle in degrees
+
+Reset Button:
+- RotateCcw icon
+- Outline variant
+```
+
+### AR View Toggle
+```
+Position: Top-right of viewer
+Button: Eye or EyeOff icon
+Variants: Default (active) or Outline (inactive)
+```
+
+### Feature Controls
+```
+Title: "Applied Features" with Palette icon
+Description: "Toggle and customize the museum features on your paper plane"
+
+Empty State:
+- Palette icon (opacity 50)
+- "No features collected yet"
+- Instruction text
+
+Feature Item (per collected feature):
+- Container: Rounded border, muted/20 background
+- Color preview: Circular badge (6x6)
+- Title + description
+- Toggle switch
+- Opacity slider (if enabled): 10-100%, step 5%
+```
+
+### Export Options
+```
+Conditional: Only shown if features collected
+Title: "Share Your Creation"
+Buttons:
+- "Save Image" (Download icon)
+- "Share AR View"
+Grid: 2 columns
+```
+
+### Collection Stats Card
+```
+Background: Blue-50 with blue-200 border
+Layout: Centered content
+
+Stats Display (3 columns):
+1. Features: Total collected count
+2. Active: Currently applied count
+3. Complete: Percentage (out of 4 total features)
+
+Text: Blue-800 heading, blue-700 labels, blue-900 values
+```
+
+---
+
+## 🎯 SECTION 8: FLOATING MENU
+
+### Position
+- Fixed bottom-right (bottom-6 right-6)
+- Z-index: 50
+
+### Main Button
+```
+Size: 16x16 units (64px)
+Shape: Rounded-full
+Color: Primary background, primary-foreground text
+Shadow: xl
+Icon: Menu or X (animated rotation)
+
+Animation:
+- Icon rotation: ±90 degrees
+- Transition: 0.2s
+```
+
+### Menu Items (when opened)
+```
+Position: Absolute, bottom-16, stacked vertically
+Gap: 3 units
+Alignment: Right-aligned
+
+Items:
+1. Instructions (FileText icon)
+2. Scanner (QrCode icon)
+3. My Plane (Plane icon)
+4. Map Route (Map icon)
+5. Collection (Archive icon)
+
+Item Button:
+- Size: 14x14 units (56px)
+- Color: White background, primary text
+- Border: 2px primary/10
+- Hover: Scale 1.05
+
+Label:
+- Background: White/90 with backdrop blur
+- Style: Small, white-space nowrap, medium font
+- Shadow: lg
+
+Entry Animation:
+- Stagger delay: index * 0.1s
+- From: opacity 0, x: 20
+- To: opacity 1, x: 0
+
+Exit Animation:
+- Reverse stagger: (length - 1 - index) * 0.05s
+```
+
+---
+
+## 📊 DATA STRUCTURE
+
+### Features Array
+```javascript
+{
+  id: string,              // 'bell_47g', 'ellehammer_wings', etc.
+  name: string,            // Display name
+  description: string,     // Full description for modal
+  modelPath: string,       // GLB file path
+  soundPath: string,       // MP3 file path (optional)
+  rarity: string,          // 'Common' | 'Rare' | 'Epic' | 'Legendary'
+  color: string,           // HEX color
+  soundDescription: string // Sound description (optional)
+}
+```
+
+### Unlocked Features Format
+```
+New granular system: "{id}_{type}"
+Examples:
+- "bell_47g_model"
+- "bell_47g_sound"
+- "ellehammer_wings_model"
+
+Legacy support: "{id}" (unlocks both model and sound)
+```
+
+### LocalStorage Keys
+```
+'unlockedFeatures': JSON array of unlocked IDs
+```
+
+---
+
+## 🎭 ANIMATIONS & INTERACTIONS
+
+### Motion Library
+- Package: `motion/react` (formerly framer-motion)
+- Version: ^12.23.25
+
+### Common Animation Patterns
+```javascript
+// Fade in + slide up
+initial={{ opacity: 0, y: 20 }}
+animate={{ opacity: 1, y: 0 }}
+
+// Scale entrance
+initial={{ scale: 0.8 }}
+animate={{ scale: 1 }}
+
+// Breathing effect
+animate={{ scale: [1, 1.1, 1] }}
+transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+
+// Staggered children
+transition={{ delay: index * 0.1 }}
+
+// Card interactions
+whileHover={{ scale: 1.02 }}
+whileTap={{ scale: 0.98 }}
+```
+
+### Transitions
+- Default duration: 0.2-0.3s
+- Ease: Usually default or easeInOut
+- Delays: Staggered by 0.05-0.1s increments
+
+---
+
+## 🎵 AUDIO CONTEXT
+
+### Audio Provider
+- Context: AudioContext component
+- Purpose: Global audio management
+- Wraps entire app
+
+### Expected Audio Files
+```
+/assets/sounds/REPLACE_SOUND_1.mp3  (Bell 47G)
+/assets/sounds/REPLACE_SOUND_2.mp3  (Ellehammer)
+/assets/sounds/REPLACE_SOUND_3.mp3  (Glenten)
+/assets/sounds/REPLACE_SOUND_4.mp3  (Saab)
+```
+
+---
+
+## 🧩 REUSABLE UI COMPONENTS
+
+### Component Library
+All components in `src/components/ui/`:
+- [button.tsx](file:///home/alex/Documents/_agProjects/_AR2025/src/components/ui/button.tsx) - Shadcn-style button with variants
+- [card.tsx](file:///home/alex/Documents/_agProjects/_AR2025/src/components/ui/card.tsx) - Card, CardHeader, CardTitle, CardDescription, CardContent
+- [badge.tsx](file:///home/alex/Documents/_agProjects/_AR2025/src/components/ui/badge.tsx) - Small colored labels
+- [input.tsx](file:///home/alex/Documents/_agProjects/_AR2025/src/components/ui/input.tsx) - Form input fields
+- [progress.tsx](file:///home/alex/Documents/_agProjects/_AR2025/src/components/ui/progress.tsx) - Progress bar
+- [select.tsx](file:///home/alex/Documents/_agProjects/_AR2025/src/components/ui/select.tsx) - Dropdown select
+- [slider.tsx](file:///home/alex/Documents/_agProjects/_AR2025/src/components/ui/slider.tsx) - Range slider
+- [switch.tsx](file:///home/alex/Documents/_agProjects/_AR2025/src/components/ui/switch.tsx) - Toggle switch
+
+### Styling Approach
+- TailwindCSS v4 with `@theme` directive
+- Class variance authority for component variants
+- `clsx` + `tailwind-merge` for conditional classes
+- CSS variables for theming
+
+---
+
+## 📦 ASSETS REQUIRED
+
+### Images
+```
+/assets/logo.png                    - Museum official logo
+/assets/teknisk_logo.png            - Alternative logo
+/assets/card.png                    - AR tracking card image
+```
+
+### 3D Models (GLB format)
+```
+/assets/models/REPLACE_MODEL_1.glb  - Bell 47G Helicopter
+/assets/models/REPLACE_MODEL_2.glb  - Ellehammer Wings
+/assets/models/REPLACE_MODEL_3.glb  - Glenten Engine
+/assets/models/REPLACE_MODEL_4.glb  - Saab Wheels
+```
+
+### Audio Files (MP3 format)
+```
+/assets/sounds/REPLACE_SOUND_1.mp3  - Helicopter rotor sounds
+/assets/sounds/REPLACE_SOUND_2.mp3  - Wind tunnel sounds
+/assets/sounds/REPLACE_SOUND_3.mp3  - Engine sounds
+/assets/sounds/REPLACE_SOUND_4.mp3  - Landing gear sounds
+```
+
+### AR Trackers
+```
+/assets/trackers/targets.mind       - MindAR image target file
+```
+
+### QR Codes (optional)
+Generated QR codes with formats:
+- `ar-collect:model:{id}`
+- `ar-collect:sound:{id}`
+
+---
+
+## 🚀 IMPLEMENTATION STEPS FOR NEW PROJECT
+
+### Step 1: Set Up Base Structure
+1. Create Vite + React + TypeScript project (already done)
+2. Install dependencies:
+   ```
+   - Tailwind CSS v4
+   - Motion (framer-motion successor)
+   - Lucide React (icons)
+   - @yudiel/react-qr-scanner
+   - Radix UI components
+   - class-variance-authority
+   - clsx + tailwind-merge
+   ```
+
+### Step 2: Configure Styling
+1. Copy [src/index.css](file:///home/alex/Documents/_agProjects/_AR2025/src/index.css) with @theme directive
+2. Copy [tailwind.config.js](file:///home/alex/Documents/_agProjects/_AR2025/tailwind.config.js) settings
+3. Set up color variables exactly as documented above
+
+### Step 3: Create Contexts
+1. **AppContext**: Navigation, state management, unlocked features
+2. **AudioContext**: Global audio control
+
+### Step 4: Build UI Components Library
+Copy all components from `src/components/ui/`:
+- button, card, badge, input, progress, select, slider, switch
+
+### Step 5: Create Data Layer
+1. [src/data/features.ts](file:///home/alex/Documents/_agProjects/_AR2025/src/data/features.ts) - Define 4 museum features with metadata
+2. Update paths to actual asset locations
+
+### Step 6: Build Screen Components (in order)
+1. **Home.tsx** - Main dashboard (Section 1)
+2. **PaperPlaneInstructions.tsx** - Folding guide (Section 2)
+3. **ARView.tsx** - AR camera view (Section 3) - SKIP AR LOGIC
+4. **ScannerView.tsx** - QR scanner (Section 4)
+5. **CollectionGallery.tsx** - Collected items (Section 5)
+6. **RouteMap.tsx** - Museum route (Section 6)
+7. **PaperPlaneViewer.tsx** - Customization (Section 7)
+8. **FloatingMenu.tsx** - Navigation menu (Section 8)
+
+### Step 7: Implement App Structure
+1. [App.tsx](file:///home/alex/Documents/_agProjects/_AR2025/src/App.tsx) - Screen routing based on context
+2. [main.tsx](file:///home/alex/Documents/_agProjects/_AR2025/src/main.tsx) - Mount with providers
+
+### Step 8: Add Assets
+1. Copy logo files to `/public/assets/`
+2. Add placeholder or real 3D models
+3. Add audio files
+4. Generate QR codes if needed
+
+### Step 9: Configure AR (Use Your Working Architecture)
+> **IMPORTANT**: Skip copying AR implementation from _AR2025    
+> Use your existing MindAR setup that works correctly
+
+Replace only the UI layer:
+- AR overlay elements (star counter)
+- Floating menu
+- Model visibility switching
+- Error handling UI
+
+### Step 10: Test Navigation Flow
+1. Start at Home
+2. Test each navigation path
+3. Verify back button behavior
+4. Check state persistence
+
+### Step 11: Polish & Responsive
+1. Test on mobile devices
+2. Verify all animations
+3. Check scroll behavior
+4. Validate color consistency
+
+---
+
+## 🎯 KEY DESIGN PRINCIPLES
+
+1. **Large Touch Targets**: Minimum 44x44px for mobile
+2. **High Contrast**: Ensure readability for kids
+3. **Clear Hierarchy**: Bold titles, muted descriptions
+4. **Consistent Spacing**: 4-unit (1rem) grid system
+5. **Rounded Corners**: 12px (0.75rem) default radius
+6. **Vibrant Colors**: Orange primary, colorful accents
+7. **Motion Feedback**: Hover/tap animations on all interactive elements
+8. **Loading States**: Show status during AR initialization
+9. **Error Handling**: Friendly, actionable error messages
+10. **Progress Indication**: Clear visual feedback on collection progress
+
+---
+
+## 💡 NOTES FOR IMPLEMENTATION
+
+### What to Copy Exactly
+- All color variables and theme settings
+- Complete component JSX structure
+- Text content and copy
+- Icon choices and positioning
+- Layout grids and spacing
+- Animation parameters
+
+### What to Adapt
+- AR functionality (use your working implementation)
+- 3D model loading (adjust for your setup)
+- Asset paths (update to your project structure)
+- Camera initialization (use your working code)
+
+### What to Replace
+- Actual museum content (4 features data)
+- Logo images
+- 3D models and sounds
+- QR code generation logic (optional)
+
+---
+
+## 📝 CONTENT CHECKLIST
+
+Use this checklist when implementing:
+
+- [ ] Orange primary color (#ea580c / hsl(24 95% 53%))
+- [ ] 12px border radius throughout
+- [ ] Home screen with 4 colored cards (blue, emerald, orange, violet)
+- [ ] Museum logo in rotating orange square
+- [ ] Paper plane instructions with 2 design options
+- [ ] 7-8 step folding sequence with icons
+- [ ] AR view with star counter (top-left)
+- [ ] Floating menu (bottom-right) with 5 items
+- [ ] QR scanner with result modal
+- [ ] Collection gallery with search and filters
+- [ ] Route map with 8 waypoints (4 models + 4 sounds)
+- [ ] Paper plane viewer with rotation and feature toggles
+- [ ] All animations (fade, slide, scale, breathing)
+- [ ] Rarity system (Common, Uncommon, Rare, Epic, Legendary)
+- [ ] 4 museum features with unique colors
+- [ ] Sound descriptions for each feature
+- [ ] LocalStorage persistence for unlocked items
+
+---
+
+## 🔗 DEPENDENCIES REFERENCE
+
+```json
+{
+  "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-label": "^2.1.8",
+    "@radix-ui/react-progress": "^1.1.8",
+    "@radix-ui/react-select": "^2.2.6",
+    "@radix-ui/react-slider": "^1.3.6",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-switch": "^1.2.6",
+    "@yudiel/react-qr-scanner": "^2.4.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.556.0",
+    "motion": "^12.23.25",
+    "tailwind-merge": "^3.4.0",
+    "tailwindcss": "^4.1.17"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.17",
+    "@vitejs/plugin-react-swc": "^4.2.2",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.6"
+  }
+}
+```
+
+---
+
+**END OF DOCUMENTATION**
+
+This guide contains all UI/UX information needed to recreate the _AR2025 project with a different AR architecture. Focus on copying the design system, content, and user experience while using your working MindAR implementation.
