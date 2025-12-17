@@ -308,8 +308,26 @@ async function initAR() {
 
 async function loadModels(group) {
     console.log('Loading 3D models...');
-    const hasLoader = window.THREE && window.THREE.GLTFLoader;
-    const loader = hasLoader ? new window.THREE.GLTFLoader() : null;
+
+    let loader = null;
+    try {
+        // Dynamic import to bypass global variable race conditions
+        const module = await import('https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js');
+        loader = new module.GLTFLoader();
+    } catch (err) {
+        console.error('Failed to load GLTFLoader:', err);
+        // Show error on screen
+        const errorDiv = document.createElement('div');
+        errorDiv.style.position = 'fixed';
+        errorDiv.style.top = '50px';
+        errorDiv.style.left = '10px';
+        errorDiv.style.color = 'yellow';
+        errorDiv.style.backgroundColor = 'rgba(0,0,0,0.8)';
+        errorDiv.style.padding = '5px';
+        errorDiv.style.zIndex = '9999';
+        errorDiv.textContent = `Loader Error: ${err.message}`;
+        document.body.appendChild(errorDiv);
+    }
 
     for (let i = 0; i < FEATURES.length; i++) {
         const feature = FEATURES[i];
@@ -331,13 +349,26 @@ async function loadModels(group) {
 
                 model = gltf.scene;
                 // Scale and position adjustment for GLB models
-                model.scale.set(0.1, 0.1, 0.1);
+                model.scale.set(0.5, 0.5, 0.5);
                 model.position.set(0, 0, 0);
             } else {
                 throw new Error('GLTFLoader not available');
             }
         } catch (err) {
             console.warn(`Fallback to cube for ${feature.name}:`, err);
+
+            // SHOW ERROR ON SCREEN
+            const errorDiv = document.createElement('div');
+            errorDiv.style.position = 'fixed';
+            errorDiv.style.top = '10px';
+            errorDiv.style.left = '10px';
+            errorDiv.style.color = 'red';
+            errorDiv.style.backgroundColor = 'rgba(0,0,0,0.8)';
+            errorDiv.style.padding = '5px';
+            errorDiv.style.zIndex = '9999';
+            errorDiv.textContent = `Error: ${err.message}`;
+            document.body.appendChild(errorDiv);
+
             // Create colored placeholder cube
             const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
             const material = new THREE.MeshBasicMaterial({ color: feature.color });

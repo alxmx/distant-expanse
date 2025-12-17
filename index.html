@@ -27,20 +27,17 @@
     }
     </script>
 
+    <!-- MindAR Three.js Integration (ES Module) -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"></script>
+
     <!-- Expose THREE to window for app.js -->
     <script type="module">
         import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-        import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
         window.THREE = THREE;
-        window.THREE.GLTFLoader = GLTFLoader;
-        console.log('THREE and GLTFLoader exposed via direct URL');
+        console.log('THREE exposed to window');
     </script>
 
 
-
-
-    <!-- MindAR Three.js Integration (ES Module) -->
-    <script type="module" src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"></script>
 
 
 
