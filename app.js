@@ -251,7 +251,15 @@ async function initAR() {
             filterMinCF: 0.0001,
             filterBeta: 0.001,
             warmupTolerance: 5,
-            missTolerance: 5
+            missTolerance: 5,
+            uiLoading: 'no', // We use our own loading overlay
+            uiScanning: 'no',
+            uiError: 'no',
+            video: {
+                facingMode: 'environment',
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            }
         });
 
         const { renderer, scene, camera } = mindarThree;
@@ -872,6 +880,28 @@ window.toggleDebug = function () {
         overlay.style.zIndex = '9999';
         overlay.style.whiteSpace = 'pre';
         document.body.appendChild(overlay);
+
+        // Add Rotation Buttons Container
+        const btnContainer = document.createElement('div');
+        btnContainer.style.marginTop = '10px';
+        btnContainer.style.pointerEvents = 'auto'; // Allow clicks
+
+        const createBtn = (text, deg) => {
+            const btn = document.createElement('button');
+            btn.textContent = text;
+            btn.style.marginRight = '5px';
+            btn.style.padding = '5px 10px';
+            btn.style.background = '#333';
+            btn.style.color = '#fff';
+            btn.style.border = '1px solid #555';
+            btn.style.cursor = 'pointer';
+            btn.onclick = () => window.rotateModel(deg);
+            return btn;
+        };
+
+        btnContainer.appendChild(createBtn('↺ -15°', -15));
+        btnContainer.appendChild(createBtn('↻ +15°', 15));
+        overlay.appendChild(btnContainer);
     }
     overlay.style.display = window.isDebugMode ? 'block' : 'none';
 };
@@ -881,6 +911,19 @@ function updateDebugInfo(group) {
     if (!overlay) return;
 
     let info = '=== DEBUG INFO ===\n';
+
+    // Camera Stats
+    if (mindarThree && mindarThree.video) {
+        const video = mindarThree.video;
+        const videoTrack = video.srcObject ? video.srcObject.getVideoTracks()[0] : null;
+        if (videoTrack) {
+            const settings = videoTrack.getSettings();
+            info += `CAMERA\n`;
+            info += `Res: ${settings.width}x${settings.height}\n`;
+            info += `FPS: ${settings.frameRate ? settings.frameRate.toFixed(1) : 'Md'}\n`;
+            info += `------------------\n`;
+        }
+    }
 
     // Anchor Group Info (The "Base")
     info += `ANCHOR (BASE)\n`;
@@ -923,6 +966,17 @@ function centerModel(object) {
 
     console.log(`Centered model. Offset by:`, center);
 }
+
+window.rotateModel = function (degrees) {
+    const feature = FEATURES[activeModelIndex];
+    if (feature && loadedModels[feature.id]) {
+        const model = loadedModels[feature.id];
+        model.rotateY(THREE.MathUtils.degToRad(degrees));
+        console.log(`Rotated ${degrees} deg. New Rotation Y: ${d(model.rotation.y)}`);
+    } else {
+        console.warn('No active model to rotate');
+    }
+};
 
 function fmt(vec) {
     if (vec.isEuler) {
