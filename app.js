@@ -267,6 +267,13 @@ async function initAR() {
         // Create anchor
         const anchor = mindarThree.addAnchor(0);
 
+        // --- DEBUG HELPERS ---
+        const axesHelper = new THREE.AxesHelper(1); // 1 meter size
+        axesHelper.visible = false;
+        axesHelper.name = 'debug-axes';
+        anchor.group.add(axesHelper);
+        // ---------------------
+
         // Load models into anchor
         await loadModels(anchor.group);
 
@@ -288,6 +295,7 @@ async function initAR() {
         // Render loop
         renderer.setAnimationLoop(() => {
             renderer.render(scene, camera);
+            if (window.isDebugMode) updateDebugInfo(anchor.group);
         });
 
         hideLoading();
@@ -349,8 +357,16 @@ async function loadModels(group) {
 
                 model = gltf.scene;
                 // Scale and position adjustment for GLB models
-                model.scale.set(0.5, 0.5, 0.5);
-                model.position.set(0, 0, 0);
+                model.scale.set(0.2, 0.2, 0.2);
+
+                // Auto-center the model
+                centerModel(model);
+
+                // Add BoxHelper
+                const boxHelper = new THREE.BoxHelper(model, 0xffff00);
+                boxHelper.visible = false; // Hidden by default
+                group.add(boxHelper);
+
             } else {
                 throw new Error('GLTFLoader not available');
             }
@@ -820,9 +836,109 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+
+
+// ===== DEBUGGING TOOLS =====
+window.isDebugMode = false;
+
+window.toggleDebug = function () {
+    window.isDebugMode = !window.isDebugMode;
+    console.log('Debug Mode:', window.isDebugMode);
+
+    // Toggle Axes
+    if (mindarThree) {
+        const anchor = mindarThree.scene.getObjectByName('debug-axes');
+        if (anchor) anchor.visible = window.isDebugMode; // Use parent axes
+
+        // Toggle BoxHelpers
+        const helpers = mindarThree.scene.getObjectsByProperty('type', 'BoxHelper');
+        helpers.forEach(h => h.visible = window.isDebugMode);
+    }
+
+    // Toggle Overlay
+    let overlay = document.getElementById('debug-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'debug-overlay';
+        overlay.style.position = 'fixed';
+        overlay.style.top = '100px';
+        overlay.style.left = '10px';
+        overlay.style.background = 'rgba(0, 0, 0, 0.7)';
+        overlay.style.color = '#00ff00';
+        overlay.style.fontFamily = 'monospace';
+        overlay.style.fontSize = '12px';
+        overlay.style.padding = '10px';
+        overlay.style.pointerEvents = 'none';
+        overlay.style.zIndex = '9999';
+        overlay.style.whiteSpace = 'pre';
+        document.body.appendChild(overlay);
+    }
+    overlay.style.display = window.isDebugMode ? 'block' : 'none';
+};
+
+function updateDebugInfo(group) {
+    const overlay = document.getElementById('debug-overlay');
+    if (!overlay) return;
+
+    let info = '=== DEBUG INFO ===\n';
+
+    // Anchor Group Info (The "Base")
+    info += `ANCHOR (BASE)\n`;
+    info += `Pos: ${fmt(group.position)}\n`;
+    info += `Rot: ${fmt(group.rotation)}\n`;
+    info += `Scl: ${fmt(group.scale)}\n`;
+    info += `------------------\n`;
+
+    // Active Model Info
+    const feature = FEATURES[activeModelIndex];
+    if (feature && loadedModels[feature.id]) {
+        const model = loadedModels[feature.id];
+        info += `MODEL: ${feature.name}\n`;
+        info += `Pos: ${fmt(model.position)}\n`;
+        info += `Rot: ${fmt(model.rotation)}\n`;
+        info += `Scl: ${fmt(model.scale)}\n`;
+
+        // Bounding Box
+        const box = new THREE.Box3().setFromObject(model);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        info += `Size: ${size.x.toFixed(2)} x ${size.y.toFixed(2)} x ${size.z.toFixed(2)}\n`;
+    } else {
+        info += 'No active model\n';
+    }
+
+    overlay.textContent = info;
+}
+
+function centerModel(object) {
+    // 1. Compute bounding box
+    const box = new THREE.Box3().setFromObject(object);
+
+    // 2. Get center
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+
+    // 3. Offset object to move center to (0,0,0)
+    object.position.sub(center);
+
+    console.log(`Centered model. Offset by:`, center);
+}
+
+function fmt(vec) {
+    if (vec.isEuler) {
+        return `X:${d(vec.x)} Y:${d(vec.y)} Z:${d(vec.z)}`;
+    }
+    return `X:${vec.x.toFixed(2)} Y:${vec.y.toFixed(2)} Z:${vec.z.toFixed(2)}`;
+}
+
+function d(rad) {
+    return (rad * 180 / Math.PI).toFixed(0) + '°';
+}
+
 // Debug: Add function to unlock all features for testing
 window.unlockAll = function () {
     FEATURES.forEach(f => {
+        // ... rest of unlockAll code ...
         if (!unlockedFeatures.includes(`${f.id}_model`)) {
             unlockedFeatures.push(`${f.id}_model`);
         }
