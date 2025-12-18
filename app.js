@@ -244,12 +244,16 @@ async function initAR() {
 
 
         // Initialize MindAR - matching working index-mindar.html configuration
+        const minCF = parseFloat(localStorage.getItem('ar_minCF')) || 0.0001;
+        const beta = parseFloat(localStorage.getItem('ar_beta')) || 0.001;
+        console.log(`MindAR Params - MinCF: ${minCF}, Beta: ${beta}`);
+
         mindarThree = new window.MINDAR.IMAGE.MindARThree({
             container: container,
             imageTargetSrc: './markers/marker_v1.mind',
             maxTrack: 1,
-            filterMinCF: 0.0001,
-            filterBeta: 0.001,
+            filterMinCF: minCF,
+            filterBeta: beta,
             warmupTolerance: 5,
             missTolerance: 5,
             uiLoading: 'no', // We use our own loading overlay
@@ -902,6 +906,45 @@ window.toggleDebug = function () {
         btnContainer.appendChild(createBtn('↺ -15°', -15));
         btnContainer.appendChild(createBtn('↻ +15°', 15));
         overlay.appendChild(btnContainer);
+
+        // Add Tuning Controls
+        const tuneDiv = document.createElement('div');
+        tuneDiv.style.marginTop = '10px';
+        tuneDiv.style.borderTop = '1px solid #555';
+        tuneDiv.style.paddingTop = '5px';
+        tuneDiv.style.pointerEvents = 'auto';
+
+        const addInput = (label, key, def) => {
+            const val = localStorage.getItem(key) || def;
+            const div = document.createElement('div');
+            div.innerHTML = `<label style="display:inline-block;width:60px">${label}:</label>
+            <input type="number" step="0.0001" id="inp_${key}" value="${val}" style="width:70px;color:black">`;
+            return div;
+        };
+
+        tuneDiv.appendChild(addInput('MinCF', 'ar_minCF', '0.0001'));
+        tuneDiv.appendChild(addInput('Beta', 'ar_beta', '0.001'));
+
+        const saveBtn = document.createElement('button');
+        saveBtn.textContent = 'Save & Reload';
+        saveBtn.style.marginTop = '5px';
+        saveBtn.style.cursor = 'pointer';
+        saveBtn.onclick = () => {
+            localStorage.setItem('ar_minCF', document.getElementById('inp_ar_minCF').value);
+            localStorage.setItem('ar_beta', document.getElementById('inp_ar_beta').value);
+            location.reload();
+        };
+        tuneDiv.appendChild(saveBtn);
+
+        // Contrast Slider
+        const contrastInput = document.createElement('div');
+        contrastInput.style.marginTop = '5px';
+        contrastInput.innerHTML = `<label style="display:inline-block;width:60px">Contrast:</label>
+        <input type="range" min="100" max="300" value="100" style="width:100px" 
+        oninput="if(mindarThree && mindarThree.video) mindarThree.video.style.filter = 'contrast(' + this.value + '%)'">`;
+        tuneDiv.appendChild(contrastInput);
+
+        overlay.appendChild(tuneDiv);
     }
     overlay.style.display = window.isDebugMode ? 'block' : 'none';
 };
